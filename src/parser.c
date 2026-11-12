@@ -189,7 +189,7 @@ int parse_command_list(const char *line, CommandList *list) {
 
         if (ch == '\0') {
             if (quote != '\0') {
-                fprintf(stderr, "shell: unmatched quote\\n");
+                fprintf(stderr, "shell: unmatched quote\n");
                 free_command_list(list);
                 return -1;
             }
@@ -197,7 +197,7 @@ int parse_command_list(const char *line, CommandList *list) {
             escaped = 0;
             p++;
             continue;
-        } else if (ch == '\\\\' && quote != '\'') {
+        } else if (ch == '\\' && quote != '\'') {
             escaped = 1;
             p++;
             continue;
@@ -226,7 +226,7 @@ int parse_command_list(const char *line, CommandList *list) {
         while (isspace((unsigned char)*first)) first++;
         if (*first != '\0') {
             if (list->count >= MAX_LIST_COMMANDS) {
-                fprintf(stderr, "shell: too many chained commands (max %d)\\n",
+                fprintf(stderr, "shell: too many chained commands (max %d)\n",
                         MAX_LIST_COMMANDS);
                 free(segment);
                 free_command_list(list);
