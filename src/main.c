@@ -1,5 +1,6 @@
 #include "shell.h"
 #include <ctype.h>
+#include <readline/readline.h>
 #include <readline/history.h>
 
 static int has_non_whitespace(const char *text) {
