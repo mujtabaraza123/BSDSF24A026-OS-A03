@@ -295,6 +295,131 @@ int expand_history_command(char** command) {
     return 1;
 }
 
+
+/* Shell variables are kept in the parent shell so assignments persist. */
+typedef struct ShellVariable {
+    char *name;
+    char *value;
+    struct ShellVariable *next;
+} ShellVariable;
+
+static ShellVariable *shell_variables = NULL;
+
+static ShellVariable *find_shell_variable(const char *name) {
+    for (ShellVariable *item = shell_variables; item != NULL; item = item->next) {
+        if (strcmp(item->name, name) == 0) return item;
+    }
+    return NULL;
+}
+
+int process_variable_assignment(char **argv) {
+    if (argv == NULL || argv[0] == NULL || argv[1] != NULL) return 0;
+    char *equals = strchr(argv[0], '=');
+    if (equals == NULL || equals == argv[0]) return 0;
+
+    for (char *p = argv[0]; p < equals; p++) {
+        if (!(isalnum((unsigned char)*p) || *p == '_') ||
+            (p == argv[0] && isdigit((unsigned char)*p))) {
+            return 0;
+        }
+    }
+
+    size_t name_length = (size_t)(equals - argv[0]);
+    char *name = strndup(argv[0], name_length);
+    char *value = strdup(equals + 1);
+    if (name == NULL || value == NULL) {
+        perror("strdup");
+        free(name);
+        free(value);
+        return 1;
+    }
+
+    ShellVariable *item = find_shell_variable(name);
+    if (item != NULL) {
+        free(item->value);
+        item->value = value;
+        free(name);
+        return 1;
+    }
+
+    item = malloc(sizeof(*item));
+    if (item == NULL) {
+        perror("malloc");
+        free(name);
+        free(value);
+        return 1;
+    }
+    item->name = name;
+    item->value = value;
+    item->next = shell_variables;
+    shell_variables = item;
+    return 1;
+}
+
+void expand_shell_variables(char **argv) {
+    if (argv == NULL) return;
+    for (int i = 0; argv[i] != NULL; i++) {
+        if (argv[i][0] != '
+    if (arglist == NULL || arglist[0] == NULL) return 0;
+
+    if (strcmp(arglist[0], "exit") == 0) {
+        exit(EXIT_SUCCESS);
+    }
+
+    if (strcmp(arglist[0], "cd") == 0) {
+        const char* destination = arglist[1];
+        if (destination == NULL) destination = getenv("HOME");
+
+        if (destination == NULL) {
+            fprintf(stderr, "cd: HOME is not set\n");
+            return 1;
+        }
+        if (arglist[2] != NULL) {
+            fprintf(stderr, "cd: too many arguments\n");
+            return 1;
+        }
+        if (chdir(destination) != 0) {
+            perror("cd");
+        }
+        return 1;
+    }
+
+    if (strcmp(arglist[0], "help") == 0) {
+        printf("Built-in commands:\n");
+        printf("  exit              Exit the shell\n");
+        printf("  cd <directory>    Change the current directory\n");
+        printf("  help              Display this help message\n");
+        printf("  jobs              Show job-control status\n");
+        printf("  history           Display recent commands\n");
+        printf("  !n                Re-execute command number n\n");
+        return 1;
+    }
+
+    if (strcmp(arglist[0], "jobs") == 0) {
+        print_background_jobs();
+        return 1;
+    }
+
+    if (strcmp(arglist[0], "history") == 0) {
+        print_command_history();
+        return 1;
+    }
+
+    return 0;
+}
+ || argv[i][1] == '\\0') continue;
+        ShellVariable *item = find_shell_variable(argv[i] + 1);
+        const char *value = item != NULL ? item->value : "";
+        char *expanded = strdup(value);
+        if (expanded == NULL) {
+            perror("strdup");
+            continue;
+        }
+        free(argv[i]);
+        argv[i] = expanded;
+    }
+}
+
 int handle_builtin(char** arglist) {
     if (arglist == NULL || arglist[0] == NULL) return 0;
 
