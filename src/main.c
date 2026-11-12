@@ -23,10 +23,6 @@ static char *trim_line(char *line) {
     return line;
 }
 
-static int is_keyword(const char *line, const char *keyword) {
-    return strcmp(trim_line((char *)line), keyword) == 0;
-}
-
 /* Execute ordinary commands in a block using the same parser and executor
    as interactive commands. Returns non-zero if any foreground command fails. */
 static int execute_block(const char *block) {
@@ -124,7 +120,7 @@ static int handle_if_statement(const char *first_line) {
         free(line);
     }
 
-    if (!finished || !in_then && !in_else) {
+    if (!finished || (!in_then && !in_else)) {
         fprintf(stderr, "shell: incomplete if statement (expected then and fi)\n");
         free(condition);
         free(then_block);
@@ -134,7 +130,9 @@ static int handle_if_statement(const char *first_line) {
 
     CommandList condition_list;
     int condition_status = 1;
-    if (parse_command_list(condition, &condition_list) == 0) {
+    if (!has_non_whitespace(condition)) {
+        fprintf(stderr, "shell: missing condition after if\\n");
+    } else if (parse_command_list(condition, &condition_list) == 0) {
         condition_status = 0;
         for (int i = 0; i < condition_list.count; i++) {
             Pipeline *pipeline = &condition_list.pipelines[i];
