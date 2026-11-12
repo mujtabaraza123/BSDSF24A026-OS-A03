@@ -50,7 +50,7 @@ int main(void) {
                 handle_builtin(pipeline->commands[0].argv)) {
                 /* Run state-changing built-ins in the shell process. */
             } else if (pipeline->command_count > 0) {
-                execute_pipeline(pipeline, list.background[i], cmdline);
+                execute_pipeline(pipeline, list.background[i], list.command_text[i]);
             }
         }
 
