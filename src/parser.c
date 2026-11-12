@@ -240,6 +240,13 @@ int parse_command_list(const char *line, CommandList *list) {
                 return -1;
             }
             list->background[index] = (ch == '&');
+            list->command_text[index] = strdup(first);
+            if (list->command_text[index] == NULL) {
+                perror("strdup");
+                free(segment);
+                free_command_list(list);
+                return -1;
+            }
             if (list->pipelines[index].command_count > 0) list->count++;
         }
         free(segment);
@@ -271,6 +278,10 @@ void free_pipeline(Pipeline *pipeline) {
 
 void free_command_list(CommandList *list) {
     if (list == NULL) return;
-    for (int i = 0; i < list->count; i++) free_pipeline(&list->pipelines[i]);
+    for (int i = 0; i < list->count; i++) {
+        free_pipeline(&list->pipelines[i]);
+        free(list->command_text[i]);
+        list->command_text[i] = NULL;
+    }
     list->count = 0;
 }
