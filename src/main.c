@@ -86,17 +86,32 @@ static int handle_if_statement(const char *first_line) {
         char *trimmed = trim_line(line);
         if (strcmp(trimmed, "then") == 0 && !in_then && !in_else) {
             in_then = 1;
-        } else if (strcmp(trimmed, "else") == 0 && in_then && !saw_else) {
+        } else if (strcmp(trimmed, "else") == 0) {
+            if (!in_then || saw_else) {
+                fprintf(stderr, "shell: unexpected or duplicate else\n");
+                free(line);
+                break;
+            }
             in_then = 0;
             in_else = 1;
             saw_else = 1;
-        } else if (strcmp(trimmed, "fi") == 0 && (in_then || in_else)) {
+        } else if (strcmp(trimmed, "fi") == 0) {
+            if (!in_then && !in_else) {
+                fprintf(stderr, "shell: expected then before fi\n");
+                free(line);
+                break;
+            }
             finished = 1;
             free(line);
             break;
         } else if (strcmp(trimmed, "if") == 0 || strncmp(trimmed, "if ", 3) == 0) {
             fprintf(stderr, "shell: nested if statements are not supported\n");
         } else if (has_non_whitespace(trimmed)) {
+            if (!in_then && !in_else) {
+                fprintf(stderr, "shell: expected then before commands\n");
+                free(line);
+                break;
+            }
             if (++lines > MAX_IF_LINES) {
                 fprintf(stderr, "shell: if block exceeds %d lines\n", MAX_IF_LINES);
                 free(line);
