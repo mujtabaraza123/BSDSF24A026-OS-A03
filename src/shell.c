@@ -406,6 +406,9 @@ int handle_builtin(char** arglist) {
         printf("  history           Display recent commands\n");
         printf("  !n                Re-execute command number n\n");
         printf("  set               Display shell variables\n");
+        printf("  NAME=value        Assign a shell variable\n");
+        printf("  echo $NAME        Expand a shell variable\n");
+        printf("  set               List all shell variables\n");
         return 1;
     }
 
