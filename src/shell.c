@@ -112,7 +112,7 @@ static char *command_generator(const char *text, int state) {
     if (state == 0) {
         clear_completion_candidates();
 
-        const char *builtins[] = {"cd", "exit", "help", "jobs", "history", NULL};
+        const char *builtins[] = {"cd", "exit", "help", "jobs", "history", "set", NULL};
         for (size_t i = 0; builtins[i] != NULL; i++) {
             add_completion_candidate(builtins[i], text);
         }
