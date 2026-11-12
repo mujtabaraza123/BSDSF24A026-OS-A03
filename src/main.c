@@ -17,7 +17,13 @@ int main(void) {
 
     initialize_readline();
 
-    while ((cmdline = readline(PROMPT)) != NULL) {
+    while (1) {
+        /* Reap completed background children before displaying the next prompt. */
+        reap_background_jobs();
+
+        cmdline = readline(PROMPT);
+        if (cmdline == NULL) break;
+
         int expansion_result = expand_history_command(&cmdline);
         if (expansion_result < 0) {
             free(cmdline);
@@ -29,22 +35,26 @@ int main(void) {
             add_history(cmdline);
         }
 
-        Pipeline pipeline;
-        if (parse_command_line(cmdline, &pipeline) != 0) {
+        CommandList list;
+        if (parse_command_list(cmdline, &list) != 0) {
             free(cmdline);
             continue;
         }
 
-        if (pipeline.command_count == 1 &&
-            pipeline.commands[0].input_file == NULL &&
-            pipeline.commands[0].output_file == NULL &&
-            handle_builtin(pipeline.commands[0].argv)) {
-            /* Built-ins run in the shell process when no redirection is requested. */
-        } else if (pipeline.command_count > 0) {
-            execute_pipeline(&pipeline);
+        for (int i = 0; i < list.count; i++) {
+            Pipeline *pipeline = &list.pipelines[i];
+
+            if (!list.background[i] && pipeline->command_count == 1 &&
+                pipeline->commands[0].input_file == NULL &&
+                pipeline->commands[0].output_file == NULL &&
+                handle_builtin(pipeline->commands[0].argv)) {
+                /* Run state-changing built-ins in the shell process. */
+            } else if (pipeline->command_count > 0) {
+                execute_pipeline(pipeline, list.background[i], cmdline);
+            }
         }
 
-        free_pipeline(&pipeline);
+        free_command_list(&list);
         free(cmdline);
     }
 
