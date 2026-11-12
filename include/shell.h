@@ -10,11 +10,17 @@
 #include <errno.h>
 
 #define MAXARGS 10
+#define HISTORY_SIZE 20
 #define PROMPT "FCIT> "
 
 char* read_cmd(char* prompt, FILE* fp);
 char** tokenize(char* cmdline);
 int execute(char** arglist);
 int handle_builtin(char** arglist);
+
+/* Command history helpers */
+void add_history_command(const char* command);
+void print_command_history(void);
+int expand_history_command(char** command);
 
 #endif // SHELL_H
