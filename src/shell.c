@@ -20,7 +20,7 @@ static int background_job_count = 0;
 
 void add_background_job(pid_t pid, const char *command) {
     if (background_job_count >= MAX_BACKGROUND_JOBS) {
-        fprintf(stderr, "jobs: maximum background job limit reached\\n");
+        fprintf(stderr, "jobs: maximum background job limit reached\n");
         return;
     }
 
@@ -63,12 +63,12 @@ void reap_background_jobs(void) {
 
 void print_background_jobs(void) {
     if (background_job_count == 0) {
-        printf("No background jobs.\\n");
+        printf("No background jobs.\n");
         return;
     }
 
     for (int i = 0; i < background_job_count; i++) {
-        printf("[%d] PID %ld  %s\\n", i + 1,
+        printf("[%d] PID %ld  %s\n", i + 1,
                (long)background_jobs[i].pid, background_jobs[i].command);
     }
 }
