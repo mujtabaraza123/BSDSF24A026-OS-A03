@@ -94,7 +94,7 @@ static char **shell_attempted_completion(const char *text, int start, int end) {
     (void)end;
 
     /* Complete executable and built-in names for the first word; filenames elsewhere. */
-    if (start == 0) {
+    if (start == 0 && strchr(text, '/') == NULL) {
         return rl_completion_matches(text, command_generator);
     }
     return rl_completion_matches(text, rl_filename_completion_function);
