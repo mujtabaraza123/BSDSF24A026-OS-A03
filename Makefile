@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -std=gnu11 -Iinclude
 LDFLAGS = -lreadline
 TARGET = bin/myshell
-OBJECTS = obj/main.o obj/shell.o obj/execute.o
+OBJECTS = obj/main.o obj/shell.o obj/execute.o obj/parser.o
 
 .PHONY: all clean
 

@@ -14,7 +14,6 @@ static int has_non_whitespace(const char *text) {
 
 int main(void) {
     char *cmdline;
-    char **arglist;
 
     initialize_readline();
 
@@ -26,23 +25,26 @@ int main(void) {
         }
 
         if (has_non_whitespace(cmdline)) {
-            /* Keep both the assignment's numbered history and Readline's arrow-key history. */
             add_history_command(cmdline);
             add_history(cmdline);
         }
 
-        arglist = tokenize(cmdline);
-
-        if (arglist != NULL) {
-            if (!handle_builtin(arglist)) {
-                execute(arglist);
-            }
-
-            for (int i = 0; arglist[i] != NULL; i++) {
-                free(arglist[i]);
-            }
-            free(arglist);
+        Pipeline pipeline;
+        if (parse_command_line(cmdline, &pipeline) != 0) {
+            free(cmdline);
+            continue;
         }
+
+        if (pipeline.command_count == 1 &&
+            pipeline.commands[0].input_file == NULL &&
+            pipeline.commands[0].output_file == NULL &&
+            handle_builtin(pipeline.commands[0].argv)) {
+            /* Built-ins run in the shell process when no redirection is requested. */
+        } else if (pipeline.command_count > 0) {
+            execute_pipeline(&pipeline);
+        }
+
+        free_pipeline(&pipeline);
         free(cmdline);
     }
 

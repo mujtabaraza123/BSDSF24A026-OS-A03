@@ -33,6 +33,21 @@ make
 - The `history` command lists the most recent 20 commands.
 - `!n` re-executes a numbered command from the history list.
 
+## I/O Redirection and Pipes
+
+- `command > file` redirects standard output to a file.
+- `command < file` reads standard input from a file.
+- `command1 | command2` sends the first command's output to the second command.
+- Quoted arguments such as `grep "root"` are kept together by the parser.
+
+Examples:
+
+```bash
+ls -l > file_list.txt
+sort < file_list.txt
+cat /etc/passwd | grep "root"
+```
+
 ## Clean
 
 ```bash
