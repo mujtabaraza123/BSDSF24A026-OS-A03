@@ -76,3 +76,27 @@ make clean
 - `bin/`: Compiled shell executable (`myshell`).
 - `obj/`: Intermediate object files.
 - `Makefile`: Build instructions.
+
+## Conditional if-then-else-fi
+
+The shell supports multi-line conditional blocks. The command after `if` runs first; an exit status of 0 runs the `then` block, while a non-zero status runs the optional `else` block. Finish the structure with `fi`.
+
+Example:
+
+```bash
+if grep "user" /etc/passwd > /dev/null
+then
+  echo "Found user"
+else
+  echo "User not found"
+fi
+```
+
+An `else` block is optional:
+
+```bash
+if [ -f "myfile.txt" ]
+then
+  echo "myfile.txt exists."
+fi
+```
