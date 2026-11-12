@@ -186,56 +186,66 @@ int parse_command_list(const char *line, CommandList *list) {
 
     while (1) {
         char ch = *p;
-        if (escaped) {
-            escaped = 0;
-        } else if (ch == '\\' && quote != '\'') {
-            escaped = 1;
-        } else if (ch == '\'' || ch == '"') {
-            if (quote == '\0') quote = ch;
-            else if (quote == ch) quote = '\0';
-        }
 
-        if ((ch == ';' || ch == '&' || ch == '\0') && quote == '\0' && !escaped) {
-            size_t length = (size_t)(p - start);
-            char *segment = malloc(length + 1);
-            if (segment == NULL) {
-                perror("malloc");
+        if (ch == '\0') {
+            if (quote != '\0') {
+                fprintf(stderr, "shell: unmatched quote\\n");
                 free_command_list(list);
                 return -1;
             }
-            memcpy(segment, start, length);
-            segment[length] = '\0';
+        } else if (escaped) {
+            escaped = 0;
+            p++;
+            continue;
+        } else if (ch == '\\\\' && quote != '\'') {
+            escaped = 1;
+            p++;
+            continue;
+        } else if (ch == '\'' || ch == '"') {
+            if (quote == '\0') quote = ch;
+            else if (quote == ch) quote = '\0';
+            p++;
+            continue;
+        } else if (quote != '\0' || (ch != ';' && ch != '&')) {
+            p++;
+            continue;
+        }
 
-            const char *first = segment;
-            while (isspace((unsigned char)*first)) first++;
-            if (*first != '\0') {
-                if (list->count >= MAX_LIST_COMMANDS) {
-                    fprintf(stderr, "shell: too many chained commands (max %d)\n",
-                            MAX_LIST_COMMANDS);
-                    free(segment);
-                    free_command_list(list);
-                    return -1;
-                }
-
-                int index = list->count;
-                if (parse_command_line(segment, &list->pipelines[index]) != 0) {
-                    free(segment);
-                    free_command_list(list);
-                    return -1;
-                }
-                list->background[index] = (ch == '&');
-                if (list->pipelines[index].command_count > 0) list->count++;
-            }
-            free(segment);
-            if (ch == '\0') break;
-            start = p + 1;
-        } else if (ch == '\0' && quote != '\0') {
-            fprintf(stderr, "shell: unmatched quote\n");
+        /* At an unquoted separator or end-of-line, parse the preceding list item. */
+        size_t length = (size_t)(p - start);
+        char *segment = malloc(length + 1);
+        if (segment == NULL) {
+            perror("malloc");
             free_command_list(list);
             return -1;
         }
+        memcpy(segment, start, length);
+        segment[length] = '\0';
+
+        const char *first = segment;
+        while (isspace((unsigned char)*first)) first++;
+        if (*first != '\0') {
+            if (list->count >= MAX_LIST_COMMANDS) {
+                fprintf(stderr, "shell: too many chained commands (max %d)\\n",
+                        MAX_LIST_COMMANDS);
+                free(segment);
+                free_command_list(list);
+                return -1;
+            }
+
+            int index = list->count;
+            if (parse_command_line(segment, &list->pipelines[index]) != 0) {
+                free(segment);
+                free_command_list(list);
+                return -1;
+            }
+            list->background[index] = (ch == '&');
+            if (list->pipelines[index].command_count > 0) list->count++;
+        }
+        free(segment);
 
         if (ch == '\0') break;
+        start = p + 1;
         p++;
     }
 
