@@ -1,29 +1,107 @@
 #include "shell.h"
 #include <ctype.h>
+#include <dirent.h>
+#include <limits.h>
+#include <readline/readline.h>
+#include <sys/stat.h>
 
 static char* command_history[HISTORY_SIZE];
 static int history_start = 0;
 static int history_count = 0;
 static unsigned long history_total = 0;
 
-char* read_cmd(char* prompt, FILE* fp) {
-    char* cmdline = NULL;
-    size_t capacity = 0;
-    ssize_t length;
+/* Candidate storage used by GNU Readline's command-name generator. */
+static char **completion_candidates = NULL;
+static size_t completion_candidate_count = 0;
+static size_t completion_candidate_index = 0;
 
-    printf("%s", prompt);
-    fflush(stdout);
+static void clear_completion_candidates(void) {
+    for (size_t i = 0; i < completion_candidate_count; i++) {
+        free(completion_candidates[i]);
+    }
+    free(completion_candidates);
+    completion_candidates = NULL;
+    completion_candidate_count = 0;
+    completion_candidate_index = 0;
+}
 
-    length = getline(&cmdline, &capacity, fp);
-    if (length == -1) {
-        free(cmdline);
-        return NULL;
+static void add_completion_candidate(const char *name, const char *prefix) {
+    if (name == NULL || prefix == NULL || strncmp(name, prefix, strlen(prefix)) != 0) {
+        return;
     }
 
-    if (length > 0 && cmdline[length - 1] == '\n') {
-        cmdline[length - 1] = '\0';
+    for (size_t i = 0; i < completion_candidate_count; i++) {
+        if (strcmp(completion_candidates[i], name) == 0) return;
     }
-    return cmdline;
+
+    char **resized = realloc(completion_candidates,
+                             (completion_candidate_count + 1) * sizeof(char *));
+    if (resized == NULL) return;
+    completion_candidates = resized;
+
+    char *copy = strdup(name);
+    if (copy == NULL) return;
+    completion_candidates[completion_candidate_count++] = copy;
+}
+
+static char *command_generator(const char *text, int state) {
+    if (state == 0) {
+        clear_completion_candidates();
+
+        const char *builtins[] = {"cd", "exit", "help", "jobs", "history", NULL};
+        for (size_t i = 0; builtins[i] != NULL; i++) {
+            add_completion_candidate(builtins[i], text);
+        }
+
+        const char *path_env = getenv("PATH");
+        if (path_env != NULL) {
+            char *path_copy = strdup(path_env);
+            if (path_copy != NULL) {
+                char *saveptr = NULL;
+                char *directory = strtok_r(path_copy, ":", &saveptr);
+
+                while (directory != NULL) {
+                    const char *dir_name = (*directory == '\0') ? "." : directory;
+                    DIR *dir = opendir(dir_name);
+                    if (dir != NULL) {
+                        struct dirent *entry;
+                        while ((entry = readdir(dir)) != NULL) {
+                            char full_path[PATH_MAX];
+                            int written = snprintf(full_path, sizeof(full_path),
+                                                    "%s/%s", dir_name, entry->d_name);
+                            if (written > 0 && (size_t)written < sizeof(full_path) &&
+                                access(full_path, X_OK) == 0) {
+                                struct stat info;
+                                if (stat(full_path, &info) == 0 && !S_ISDIR(info.st_mode)) {
+                                    add_completion_candidate(entry->d_name, text);
+                                }
+                            }
+                        }
+                        closedir(dir);
+                    }
+                    directory = strtok_r(NULL, ":", &saveptr);
+                }
+                free(path_copy);
+            }
+        }
+    }
+
+    if (completion_candidate_index >= completion_candidate_count) return NULL;
+    return strdup(completion_candidates[completion_candidate_index++]);
+}
+
+static char **shell_attempted_completion(const char *text, int start, int end) {
+    (void)end;
+
+    /* Complete executable and built-in names for the first word; filenames elsewhere. */
+    if (start == 0) {
+        return rl_completion_matches(text, command_generator);
+    }
+    return rl_completion_matches(text, rl_filename_completion_function);
+}
+
+void initialize_readline(void) {
+    rl_attempted_completion_function = shell_attempted_completion;
 }
 
 char** tokenize(char* cmdline) {
