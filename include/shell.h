@@ -42,6 +42,8 @@ void free_command_list(CommandList *list);
 int execute(char** arglist);
 int execute_pipeline(Pipeline *pipeline, int background, const char *job_command);
 int handle_builtin(char** arglist);
+int process_variable_assignment(char **argv);
+void expand_shell_variables(char **argv);
 void initialize_readline(void);
 
 /* Background job management */
