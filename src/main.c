@@ -45,6 +45,8 @@ static int execute_block(const char *block) {
 
         for (int i = 0; i < list.count; i++) {
             Pipeline *pipeline = &list.pipelines[i];
+            if (pipeline->command_count == 1 && process_variable_assignment(pipeline->commands[0].argv)) continue;
+            for (int j = 0; j < pipeline->command_count; j++) expand_shell_variables(pipeline->commands[j].argv);
             if (!list.background[i] && pipeline->command_count == 1 &&
                 pipeline->commands[0].input_file == NULL &&
                 pipeline->commands[0].output_file == NULL &&
@@ -151,6 +153,8 @@ static int handle_if_statement(const char *first_line) {
         condition_status = 0;
         for (int i = 0; i < condition_list.count; i++) {
             Pipeline *pipeline = &condition_list.pipelines[i];
+            if (pipeline->command_count == 1 && process_variable_assignment(pipeline->commands[0].argv)) continue;
+            for (int j = 0; j < pipeline->command_count; j++) expand_shell_variables(pipeline->commands[j].argv);
             if (pipeline->command_count == 1 &&
                 pipeline->commands[0].input_file == NULL &&
                 pipeline->commands[0].output_file == NULL &&
@@ -209,6 +213,8 @@ int main(void) {
 
         for (int i = 0; i < list.count; i++) {
             Pipeline *pipeline = &list.pipelines[i];
+            if (pipeline->command_count == 1 && process_variable_assignment(pipeline->commands[0].argv)) continue;
+            for (int j = 0; j < pipeline->command_count; j++) expand_shell_variables(pipeline->commands[j].argv);
             if (!list.background[i] && pipeline->command_count == 1 &&
                 pipeline->commands[0].input_file == NULL &&
                 pipeline->commands[0].output_file == NULL &&
