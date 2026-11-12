@@ -11,7 +11,9 @@
 
 #define MAXARGS 10
 #define MAX_COMMANDS 10
+#define MAX_LIST_COMMANDS 32
 #define HISTORY_SIZE 20
+#define MAX_BACKGROUND_JOBS 128
 #define PROMPT "FCIT> "
 
 typedef struct {
@@ -25,13 +27,27 @@ typedef struct {
     int command_count;
 } Pipeline;
 
+typedef struct {
+    Pipeline pipelines[MAX_LIST_COMMANDS];
+    int background[MAX_LIST_COMMANDS];
+    char *command_text[MAX_LIST_COMMANDS];
+    int count;
+} CommandList;
+
 char** tokenize(char* cmdline);
 int parse_command_line(const char *line, Pipeline *pipeline);
+int parse_command_list(const char *line, CommandList *list);
 void free_pipeline(Pipeline *pipeline);
+void free_command_list(CommandList *list);
 int execute(char** arglist);
-int execute_pipeline(Pipeline *pipeline);
+int execute_pipeline(Pipeline *pipeline, int background, const char *job_command);
 int handle_builtin(char** arglist);
 void initialize_readline(void);
+
+/* Background job management */
+void add_background_job(pid_t pid, const char *command);
+void reap_background_jobs(void);
+void print_background_jobs(void);
 
 /* Command history helpers */
 void add_history_command(const char* command);

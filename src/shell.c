@@ -10,6 +10,70 @@ static int history_start = 0;
 static int history_count = 0;
 static unsigned long history_total = 0;
 
+typedef struct {
+    pid_t pid;
+    char *command;
+} BackgroundJob;
+
+static BackgroundJob background_jobs[MAX_BACKGROUND_JOBS];
+static int background_job_count = 0;
+
+void add_background_job(pid_t pid, const char *command) {
+    if (background_job_count >= MAX_BACKGROUND_JOBS) {
+        fprintf(stderr, "jobs: maximum background job limit reached\n");
+        return;
+    }
+
+    char *copy = strdup(command != NULL ? command : "(background command)");
+    if (copy == NULL) {
+        perror("strdup");
+        return;
+    }
+
+    background_jobs[background_job_count].pid = pid;
+    background_jobs[background_job_count].command = copy;
+    background_job_count++;
+}
+
+static void remove_background_job(pid_t pid) {
+    for (int i = 0; i < background_job_count; i++) {
+        if (background_jobs[i].pid == pid) {
+            free(background_jobs[i].command);
+            for (int j = i; j < background_job_count - 1; j++) {
+                background_jobs[j] = background_jobs[j + 1];
+            }
+            background_job_count--;
+            return;
+        }
+    }
+}
+
+void reap_background_jobs(void) {
+    int status;
+    pid_t pid;
+
+    while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+        remove_background_job(pid);
+    }
+
+    if (pid == -1 && errno != ECHILD && errno != EINTR) {
+        perror("waitpid");
+    }
+}
+
+void print_background_jobs(void) {
+    if (background_job_count == 0) {
+        printf("No background jobs.\n");
+        return;
+    }
+
+    for (int i = 0; i < background_job_count; i++) {
+        printf("[%d] PID %ld  %s\n", i + 1,
+               (long)background_jobs[i].pid, background_jobs[i].command);
+    }
+}
+
+
 /* Candidate storage used by GNU Readline's command-name generator. */
 static char **completion_candidates = NULL;
 static size_t completion_candidate_count = 0;
@@ -268,7 +332,7 @@ int handle_builtin(char** arglist) {
     }
 
     if (strcmp(arglist[0], "jobs") == 0) {
-        printf("Job control not yet implemented.\n");
+        print_background_jobs();
         return 1;
     }
 

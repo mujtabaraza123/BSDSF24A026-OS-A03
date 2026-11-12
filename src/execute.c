@@ -32,7 +32,7 @@ int execute(char* arglist[]) {
     return 0;
 }
 
-int execute_pipeline(Pipeline *pipeline) {
+int execute_pipeline(Pipeline *pipeline, int background, const char *job_command) {
     if (pipeline == NULL || pipeline->command_count <= 0) return 0;
 
     int command_count = pipeline->command_count;
@@ -90,6 +90,7 @@ int execute_pipeline(Pipeline *pipeline) {
                 int fd = open(command->output_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
                 if (fd == -1) {
                     perror(command->output_file);
+                    close(fd);
                     _exit(EXIT_FAILURE);
                 }
                 if (dup2(fd, STDOUT_FILENO) == -1) {
@@ -109,6 +110,17 @@ int execute_pipeline(Pipeline *pipeline) {
     }
 
     close_pipe_fds(pipes, command_count - 1);
+
+    if (background) {
+        for (int i = 0; i < started; i++) {
+            add_background_job(children[i], job_command);
+        }
+        printf("[background]");
+        for (int i = 0; i < started; i++) printf(" %ld", (long)children[i]);
+        printf("\n");
+        fflush(stdout);
+        return 0;
+    }
 
     int result = 0;
     for (int i = 0; i < started; i++) {

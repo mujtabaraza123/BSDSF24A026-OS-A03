@@ -65,7 +65,7 @@ int parse_command_line(const char *line, Pipeline *pipeline) {
                 continue;
             }
 
-            if ((*p == '\'' || *p == '"')) {
+            if (*p == '\'' || *p == '"') {
                 if (quote == '\0') {
                     quote = *p++;
                     continue;
@@ -173,6 +173,92 @@ int parse_command_line(const char *line, Pipeline *pipeline) {
     return 0;
 }
 
+/* Split a command list on unquoted ';' and '&'. An ampersand marks
+   the preceding pipeline as a background job. */
+int parse_command_list(const char *line, CommandList *list) {
+    if (line == NULL || list == NULL) return -1;
+    memset(list, 0, sizeof(*list));
+
+    const char *start = line;
+    const char *p = line;
+    char quote = '\0';
+    int escaped = 0;
+
+    while (1) {
+        char ch = *p;
+
+        if (ch == '\0') {
+            if (quote != '\0') {
+                fprintf(stderr, "shell: unmatched quote\n");
+                free_command_list(list);
+                return -1;
+            }
+        } else if (escaped) {
+            escaped = 0;
+            p++;
+            continue;
+        } else if (ch == '\\' && quote != '\'') {
+            escaped = 1;
+            p++;
+            continue;
+        } else if (ch == '\'' || ch == '"') {
+            if (quote == '\0') quote = ch;
+            else if (quote == ch) quote = '\0';
+            p++;
+            continue;
+        } else if (quote != '\0' || (ch != ';' && ch != '&')) {
+            p++;
+            continue;
+        }
+
+        /* At an unquoted separator or end-of-line, parse the preceding list item. */
+        size_t length = (size_t)(p - start);
+        char *segment = malloc(length + 1);
+        if (segment == NULL) {
+            perror("malloc");
+            free_command_list(list);
+            return -1;
+        }
+        memcpy(segment, start, length);
+        segment[length] = '\0';
+
+        const char *first = segment;
+        while (isspace((unsigned char)*first)) first++;
+        if (*first != '\0') {
+            if (list->count >= MAX_LIST_COMMANDS) {
+                fprintf(stderr, "shell: too many chained commands (max %d)\n",
+                        MAX_LIST_COMMANDS);
+                free(segment);
+                free_command_list(list);
+                return -1;
+            }
+
+            int index = list->count;
+            if (parse_command_line(segment, &list->pipelines[index]) != 0) {
+                free(segment);
+                free_command_list(list);
+                return -1;
+            }
+            list->background[index] = (ch == '&');
+            list->command_text[index] = strdup(first);
+            if (list->command_text[index] == NULL) {
+                perror("strdup");
+                free(segment);
+                free_command_list(list);
+                return -1;
+            }
+            if (list->pipelines[index].command_count > 0) list->count++;
+        }
+        free(segment);
+
+        if (ch == '\0') break;
+        start = p + 1;
+        p++;
+    }
+
+    return 0;
+}
+
 void free_pipeline(Pipeline *pipeline) {
     if (pipeline == NULL) return;
 
@@ -188,4 +274,14 @@ void free_pipeline(Pipeline *pipeline) {
         command->output_file = NULL;
     }
     pipeline->command_count = 0;
+}
+
+void free_command_list(CommandList *list) {
+    if (list == NULL) return;
+    for (int i = 0; i < list->count; i++) {
+        free_pipeline(&list->pipelines[i]);
+        free(list->command_text[i]);
+        list->command_text[i] = NULL;
+    }
+    list->count = 0;
 }
