@@ -69,10 +69,15 @@ char** tokenize(char* cmdline) {
 void add_history_command(const char* command) {
     if (command == NULL) return;
 
-    /* Do not store empty or whitespace-only lines. */
     const unsigned char* p = (const unsigned char*)command;
     while (*p != '\0' && isspace(*p)) p++;
     if (*p == '\0') return;
+
+    char* copy = strdup(command);
+    if (copy == NULL) {
+        perror("strdup");
+        return;
+    }
 
     int index;
     if (history_count < HISTORY_SIZE) {
@@ -84,12 +89,7 @@ void add_history_command(const char* command) {
         history_start = (history_start + 1) % HISTORY_SIZE;
     }
 
-    command_history[index] = strdup(command);
-    if (command_history[index] == NULL) {
-        perror("strdup");
-        if (history_count > 0) history_count--;
-        return;
-    }
+    command_history[index] = copy;
     history_total++;
 }
 
@@ -113,10 +113,7 @@ static const char* get_history_command(unsigned long number) {
     return command_history[index];
 }
 
-/*
- * Return 0 for a normal command, 1 when !n was expanded,
- * and -1 when the requested history entry is invalid.
- */
+/* Return 0 for normal input, 1 when !n was expanded, and -1 on error. */
 int expand_history_command(char** command) {
     if (command == NULL || *command == NULL || (*command)[0] != '!') {
         return 0;
