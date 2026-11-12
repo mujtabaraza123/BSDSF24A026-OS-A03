@@ -100,3 +100,20 @@ then
   echo "myfile.txt exists."
 fi
 ```
+
+
+## Shell Variables
+
+- Assign a value with `NAME=value` (do not put spaces around `=`).
+- Use `$NAME` in a command to expand the stored value.
+- Use `set` to display all variables currently defined in this shell.
+
+Example:
+
+```bash
+MSG="hello"
+set
+echo $MSG
+MSG="Good morning"
+echo $MSG
+```
