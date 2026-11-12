@@ -421,7 +421,7 @@ int handle_builtin(char** arglist) {
 
     if (strcmp(arglist[0], "set") == 0) {
         for (ShellVariable *item = shell_variables; item != NULL; item = item->next) {
-            printf("%s=%s\\n", item->name, item->value);
+            printf("%s=%s\n", item->name, item->value);
         }
         return 1;
     }
