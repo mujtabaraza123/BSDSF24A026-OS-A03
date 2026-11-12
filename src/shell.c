@@ -332,7 +332,7 @@ int handle_builtin(char** arglist) {
     }
 
     if (strcmp(arglist[0], "jobs") == 0) {
-        printf("Job control not yet implemented.\n");
+        print_background_jobs();
         return 1;
     }
 
