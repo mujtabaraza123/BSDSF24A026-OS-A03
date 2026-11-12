@@ -30,6 +30,7 @@ typedef struct {
 typedef struct {
     Pipeline pipelines[MAX_LIST_COMMANDS];
     int background[MAX_LIST_COMMANDS];
+    char *command_text[MAX_LIST_COMMANDS];
     int count;
 } CommandList;
 
