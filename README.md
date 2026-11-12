@@ -48,6 +48,21 @@ sort < file_list.txt
 cat /etc/passwd | grep "root"
 ```
 
+## Command Chaining and Background Jobs
+
+- Separate commands with `;` to run them sequentially.
+- End a command with `&` to run it in the background without waiting.
+- Use `jobs` to list active background processes and their PIDs.
+- Completed background children are reaped with non-blocking `waitpid(-1, ..., WNOHANG)` before the next prompt.
+
+Examples:
+
+```bash
+echo "First command" ; sleep 2 ; echo "Second command"
+sleep 10 &
+jobs
+```
+
 ## Clean
 
 ```bash
