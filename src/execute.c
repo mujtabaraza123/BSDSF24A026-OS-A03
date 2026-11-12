@@ -112,16 +112,18 @@ int execute_pipeline(Pipeline *pipeline) {
 
     int result = 0;
     for (int i = 0; i < started; i++) {
-        int status;
-        while (waitpid(children[i], &status, 0) == -1) {
-            if (errno != EINTR) {
-                perror("waitpid");
-                result = -1;
-                break;
-            }
+        int status = 0;
+        int waited;
+        do {
+            waited = (int)waitpid(children[i], &status, 0);
+        } while (waited == -1 && errno == EINTR);
+
+        if (waited == -1) {
+            perror("waitpid");
+            result = -1;
+        } else if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+            result = -1;
         }
-        if (WIFEXITED(status) && WEXITSTATUS(status) != 0) result = -1;
-        else if (WIFSIGNALED(status)) result = -1;
     }
     return result;
 }
