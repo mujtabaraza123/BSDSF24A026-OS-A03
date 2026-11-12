@@ -359,55 +359,7 @@ int process_variable_assignment(char **argv) {
 void expand_shell_variables(char **argv) {
     if (argv == NULL) return;
     for (int i = 0; argv[i] != NULL; i++) {
-        if (argv[i][0] != '
-    if (arglist == NULL || arglist[0] == NULL) return 0;
-
-    if (strcmp(arglist[0], "exit") == 0) {
-        exit(EXIT_SUCCESS);
-    }
-
-    if (strcmp(arglist[0], "cd") == 0) {
-        const char* destination = arglist[1];
-        if (destination == NULL) destination = getenv("HOME");
-
-        if (destination == NULL) {
-            fprintf(stderr, "cd: HOME is not set\n");
-            return 1;
-        }
-        if (arglist[2] != NULL) {
-            fprintf(stderr, "cd: too many arguments\n");
-            return 1;
-        }
-        if (chdir(destination) != 0) {
-            perror("cd");
-        }
-        return 1;
-    }
-
-    if (strcmp(arglist[0], "help") == 0) {
-        printf("Built-in commands:\n");
-        printf("  exit              Exit the shell\n");
-        printf("  cd <directory>    Change the current directory\n");
-        printf("  help              Display this help message\n");
-        printf("  jobs              Show job-control status\n");
-        printf("  history           Display recent commands\n");
-        printf("  !n                Re-execute command number n\n");
-        return 1;
-    }
-
-    if (strcmp(arglist[0], "jobs") == 0) {
-        print_background_jobs();
-        return 1;
-    }
-
-    if (strcmp(arglist[0], "history") == 0) {
-        print_command_history();
-        return 1;
-    }
-
-    return 0;
-}
- || argv[i][1] == '\\0') continue;
+        if (argv[i][0] != '$' || argv[i][1] == '\0') continue;
         ShellVariable *item = find_shell_variable(argv[i] + 1);
         const char *value = item != NULL ? item->value : "";
         char *expanded = strdup(value);
@@ -453,6 +405,7 @@ int handle_builtin(char** arglist) {
         printf("  jobs              Show job-control status\n");
         printf("  history           Display recent commands\n");
         printf("  !n                Re-execute command number n\n");
+        printf("  set               Display shell variables\n");
         return 1;
     }
 
@@ -463,6 +416,13 @@ int handle_builtin(char** arglist) {
 
     if (strcmp(arglist[0], "history") == 0) {
         print_command_history();
+        return 1;
+    }
+
+    if (strcmp(arglist[0], "set") == 0) {
+        for (ShellVariable *item = shell_variables; item != NULL; item = item->next) {
+            printf("%s=%s\\n", item->name, item->value);
+        }
         return 1;
     }
 
